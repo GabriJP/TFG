@@ -1,2 +1,0 @@
-model_checkpoint_path: "/home/gabriel/PycharmProjects/TFG/tasks/babi/checkpoints/step-3/model.ckpt"
-all_model_checkpoint_paths: "/home/gabriel/PycharmProjects/TFG/tasks/babi/checkpoints/step-3/model.ckpt"

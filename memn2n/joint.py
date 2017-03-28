@@ -3,8 +3,10 @@ Download tasks from facebook.ai/babi """
 from __future__ import absolute_import
 from __future__ import print_function
 
+# noinspection PyUnresolvedReferences
 from data_utils import load_task, vectorize_data
 from sklearn import model_selection, metrics
+# noinspection PyUnresolvedReferences
 from memn2n import MemN2N
 from itertools import chain
 from six.moves import range, reduce
@@ -41,9 +43,13 @@ data = list(chain.from_iterable(train + test))
 vocab = sorted(reduce(lambda x, y: x | y, (set(list(chain.from_iterable(s)) + q + a) for s, q, a in data)))
 word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
 
+# noinspection PyRedeclaration
 max_story_size = max(map(len, (s for s, _, _ in data)))
+# noinspection PyRedeclaration
 mean_story_size = np.mean([len(s) for s, _, _ in data])
+# noinspection PyRedeclaration
 sentence_size = max(map(len, chain.from_iterable(s for s, _, _ in data)))
+# noinspection PyRedeclaration
 query_size = max(map(len, (q for _, q, _ in data)))
 memory_size = min(FLAGS.memory_size, max_story_size)
 
