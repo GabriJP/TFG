@@ -7,6 +7,7 @@
 
 import tensorflow as tf
 from itertools import chain
+# noinspection PyUnresolvedReferences
 from data_utils import load_task, vectorize_sentences
 from functools import reduce
 import time
@@ -16,6 +17,7 @@ start_time = time.time()
 tf.flags.DEFINE_float("learning_rate", 0.01, "Learning rate for Adam Optimizer.")
 tf.flags.DEFINE_float("epsilon", 1e-8, "Epsilon value for Adam Optimizer.")
 tf.flags.DEFINE_float("max_grad_norm", 40.0, "Clip gradients to this norm.")
+tf.flags.DEFINE_float("test_pct", 0.2, "Percentage of data reserved for training.")
 tf.flags.DEFINE_integer("evaluation_interval", 10, "Evaluate and print results every x epochs")
 tf.flags.DEFINE_integer("batch_size", 13, "Batch size for training.")
 tf.flags.DEFINE_integer("epochs", 200, "Number of epochs to train for.")
@@ -35,8 +37,11 @@ data = train + test
 vocab = sorted(reduce(lambda x, y: x | y, (set(list(chain.from_iterable(s)) + q + a) for s, q, a in data)))
 word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
 
+# noinspection PyRedeclaration
 max_story_size = max(map(len, (s for s, _, _ in data)))
+# noinspection PyRedeclaration
 sentence_size = max(map(len, chain.from_iterable(s for s, _, _ in data)))
+# noinspection PyRedeclaration
 query_size = max(map(len, (q for _, q, _ in data)))
 
 num_steps = max_story_size * sentence_size + query_size
@@ -50,7 +55,7 @@ input_label = tf.placeholder(tf.float32, [None, 20])
 
 
 def inference(_input_data):
-    W_o = tf.Variable(tf.random_normal([FLAGS.num_hidden, 20], stddev=0.1), name='W_o')
+    w_o = tf.Variable(tf.random_normal([FLAGS.num_hidden, 20], stddev=0.1), name='w_o')
     b_o = tf.Variable(tf.zeros([1]), name='b_o')
 
     lstm_cell = tf.contrib.rnn.BasicLSTMCell(num_units=FLAGS.num_hidden, forget_bias=0.0,
@@ -60,12 +65,14 @@ def inference(_input_data):
     outputs = []
     state = initial_state
     with tf.variable_scope("RNN"):
-        for time_step in range(num_steps):
-            if time_step > 0:
-                tf.get_variable_scope().reuse_variables()
+        inp = _input_data[:, 0, :]
+        (cell_output, state) = lstm_cell(inp, state)
+        outputs.append(tf.nn.sigmoid(tf.matmul(cell_output, w_o) + b_o))
+        tf.get_variable_scope().reuse_variables()
+        for time_step in range(1, num_steps):
             inp = _input_data[:, time_step, :]
             (cell_output, state) = lstm_cell(inp, state)
-            outputs.append(tf.nn.sigmoid(tf.matmul(cell_output, W_o) + b_o))
+            outputs.append(tf.nn.sigmoid(tf.matmul(cell_output, w_o) + b_o))
 
     result = tf.transpose(tf.squeeze(outputs), perm=[1, 0, 2])
     return result
@@ -93,16 +100,17 @@ batches = [(start, end) for start, end in batches]
 
 i = 0
 for j in range(1000):
-    for start, end in batches:
+    for start, end in batches[:int(len(batches) * (1 - FLAGS.test_pct))]:
         sess.run(train_step, feed_dict={input_data: S[start:end], input_label: A[start:end]})
         i += 1
         if i % 20 == 0:
             print("iteration: ", i, "ce: ", sess.run(cross_entropy,
                                                      feed_dict={input_data: S[start:end], input_label: A[start:end]}))
 
-
-            # Test ----------------------------------------------------
-
-            # TODO: do the test
+    # Test ----------------------------------------------------
+    if j % 200 == 0:
+        for start, end in batches[int(len(batches) * (1 - FLAGS.test_pct)):]:
+            print("Test: ", j, "ce: ", sess.run(cross_entropy,
+                                                feed_dict={input_data: S[start:end], input_label: A[start:end]}))
 
 print("--- %s seconds ---" % (time.time() - start_time))
