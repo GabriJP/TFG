@@ -62,12 +62,11 @@ def inference(_input_data):
         w_o = tf.Variable(tf.random_normal([FLAGS.num_hidden, 20], stddev=0.1), name='w_o')
         b_o = tf.Variable(tf.zeros([1]), name='b_o')
 
-        lstm_cell = tf.contrib.rnn.BasicLSTMCell(num_units=FLAGS.num_hidden,
-                                                 forget_bias=0.2)  # ,activation="tanh" probar esto
+        cells = [tf.contrib.rnn.DropoutWrapper(tf.contrib.rnn.BasicLSTMCell(num_units=FLAGS.num_hidden,
+                                                                            forget_bias=0.2), FLAGS.dropout) for _ in
+                 range(FLAGS.num_layers)]
 
-        lstm_cell = tf.contrib.rnn.DropoutWrapper(lstm_cell, FLAGS.dropout)
-
-        lstm_cell = tf.contrib.rnn.MultiRNNCell([lstm_cell] * FLAGS.num_layers, state_is_tuple=True)
+        lstm_cell = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=True)
 
         outputs = []
         state = lstm_cell.zero_state(FLAGS.batch_size, tf.float32)
