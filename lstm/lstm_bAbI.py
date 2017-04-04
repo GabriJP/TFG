@@ -58,19 +58,19 @@ input_label = tf.placeholder(tf.float32, [None, 20])
 
 
 def inference(_input_data):
-    w_o = tf.Variable(tf.random_normal([FLAGS.num_hidden, 20], stddev=0.1), name='w_o')
-    b_o = tf.Variable(tf.zeros([1]), name='b_o')
-
-    lstm_cell = tf.contrib.rnn.BasicLSTMCell(num_units=FLAGS.num_hidden,
-                                             forget_bias=0.2)  # ,activation="tanh" probar esto
-
-    lstm_cell = tf.contrib.rnn.DropoutWrapper(lstm_cell, FLAGS.dropout)
-
-    lstm_cell = tf.contrib.rnn.MultiRNNCell([lstm_cell] * FLAGS.num_layers, state_is_tuple=True)
-
-    outputs = []
-    state = lstm_cell.zero_state(FLAGS.batch_size, tf.float32)
     with tf.variable_scope("RNN"):
+        w_o = tf.Variable(tf.random_normal([FLAGS.num_hidden, 20], stddev=0.1), name='w_o')
+        b_o = tf.Variable(tf.zeros([1]), name='b_o')
+
+        lstm_cell = tf.contrib.rnn.BasicLSTMCell(num_units=FLAGS.num_hidden,
+                                                 forget_bias=0.2)  # ,activation="tanh" probar esto
+
+        lstm_cell = tf.contrib.rnn.DropoutWrapper(lstm_cell, FLAGS.dropout)
+
+        lstm_cell = tf.contrib.rnn.MultiRNNCell([lstm_cell] * FLAGS.num_layers, state_is_tuple=True)
+
+        outputs = []
+        state = lstm_cell.zero_state(FLAGS.batch_size, tf.float32)
         inp = _input_data[:, 0, :]
         (cell_output, state) = lstm_cell(inp, state)
         outputs.append(tf.nn.sigmoid(tf.matmul(cell_output, w_o) + b_o))
@@ -80,8 +80,8 @@ def inference(_input_data):
             (cell_output, state) = lstm_cell(inp, state)
             outputs.append(tf.nn.sigmoid(tf.matmul(cell_output, w_o) + b_o))
 
-    result = tf.transpose(tf.squeeze(outputs), perm=[1, 0, 2])
-    return result
+        result = tf.transpose(tf.squeeze(outputs), perm=[1, 0, 2])
+        return result
 
 
 # Training ------------------------------------------------
@@ -89,7 +89,7 @@ def inference(_input_data):
 predicted = inference(input_data)
 
 regularization_cost = tf.reduce_sum([tf.nn.l2_loss(v) for v in tf.trainable_variables() if v.name in (
-    'w_o:0',
+    'RNN/w_o:0',
     'RNN/multi_rnn_cell/cell_0/basic_lstm_cell/weights:0',
     'RNN/multi_rnn_cell/cell_1/basic_lstm_cell/weights:0')])
 
