@@ -14,7 +14,7 @@ import time
 
 start_time = time.time()
 
-tf.flags.DEFINE_boolean("L2", True, "Use L2 regularization or not")
+tf.flags.DEFINE_boolean("L2", False, "Use L2 regularization or not")
 tf.flags.DEFINE_float("learning_rate", 1e-4, "Learning rate for Adam Optimizer.")
 tf.flags.DEFINE_float("epsilon", 1e-8, "Epsilon value for Adam Optimizer.")
 tf.flags.DEFINE_float("dropout", 0.75, "Dropout")
@@ -25,7 +25,7 @@ tf.flags.DEFINE_integer("batch_size", 13, "Batch size for training.")
 tf.flags.DEFINE_integer("task_id", 1, "bAbI task id, 1 <= id <= 20")
 # tf.flags.DEFINE_integer("random_state", None, "Random state.")
 tf.flags.DEFINE_integer("num_layers", 1, "Number of layers.")
-tf.flags.DEFINE_integer("num_hidden", 100, "Number of hidden units.")
+tf.flags.DEFINE_integer("num_hidden", 128, "Number of hidden units.")
 # tf.flags.DEFINE_integer("steps", 25, "Number of steps in the LSTM.")
 tf.flags.DEFINE_string("data_dir", "data/en-valid/", "Directory containing bAbI tasks")
 tf.flags.DEFINE_string("log_dir", "data/logs/", "Directory containing bAbI tasks")
@@ -86,6 +86,7 @@ def inference(_input_data):
         result = tf.transpose(tf.squeeze(outputs), perm=[1, 0, 2])
         return result
 
+
 # Training ------------------------------------------------
 predicted = inference(input_data)
 if FLAGS.L2:
@@ -95,10 +96,14 @@ if FLAGS.L2:
 else:
     cross_entropy = tf.reduce_sum(tf.square(input_label - predicted[:, 62]))
 
-# train_step = tf.train.GradientDescentOptimizer(0.1).minimize(cross_entropy)
-train_step = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate, epsilon=FLAGS.epsilon).minimize(
-    cross_entropy)
-accuracy = tf.reduce_sum(tf.abs(tf.round(predicted[:, 62]) - input_label))
+# opt = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.learning_rate)
+opt = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate, epsilon=FLAGS.epsilon)
+train_step = opt.minimize(cross_entropy)
+
+correct_pred = tf.equal(tf.argmax(predicted[:, 62], 1), tf.argmax(input_label, 1))
+accuracy = tf.reduce_sum(tf.cast(tf.equal(tf.argmax(input_label, 1), tf.argmax(tf.nn.softmax(predicted[:, 62]), 1)),
+                                 tf.int32)) / FLAGS.batch_size
+
 tf.summary.scalar("accuracy", accuracy)
 tf.summary.scalar("cross_entropy", cross_entropy)
 merged = tf.summary.merge_all()
@@ -107,8 +112,8 @@ init = tf.global_variables_initializer()
 sess = tf.Session()
 sess.run(init)
 
-# writer = tf.summary.FileWriter(FLAGS.log_dir)
-# writer.add_graph(sess.graph)
+writer = tf.summary.FileWriter(FLAGS.log_dir)
+writer.add_graph(sess.graph)
 
 res = sess.run(cross_entropy, feed_dict={input_data: S[0:13], input_label: A[0:13]})
 
@@ -116,8 +121,7 @@ print(res.shape)
 print(S[0:13].shape)
 print(A[0:13].shape)
 
-batches = zip(range(0, len(S[0]), FLAGS.batch_size), range(FLAGS.batch_size, len(S[0]), FLAGS.batch_size))
-batches = [(start, end) for start, end in batches]
+batches = list(zip(range(0, len(S[0]), FLAGS.batch_size), range(FLAGS.batch_size, len(S[0]), FLAGS.batch_size)))
 
 i = 0
 for j in range(3000):
@@ -125,19 +129,19 @@ for j in range(3000):
         sess.run(train_step, feed_dict={input_data: S[start:end], input_label: A[start:end]})
         i += 1
         if i % 20 == 0:
-            [ce, summ] = sess.run([cross_entropy, merged],
-                                  feed_dict={input_data: S[start:end], input_label: A[start:end]})
-            # writer.add_summary(summ, i)
-            print("iteration: ", i, "ce: ", ce)
-            # if i % 500 == 0:
-            #     tf.train.Saver().save(sess, FLAGS.log_dir + "model.ckpt", i)
+            [ce, acc, summ] = sess.run([cross_entropy, accuracy, merged],
+                                       feed_dict={input_data: S[start:end], input_label: A[start:end]})
+            writer.add_summary(summ, i)
+            print("iteration: ", i, "ce: ", ce, "acc", acc)
+            if i % 500 == 0:
+                tf.train.Saver().save(sess, FLAGS.log_dir + "model.ckpt", i)
 
 # Test ----------------------------------------------------
-test_batches = zip(range(0, len(Ste[0]), FLAGS.batch_size),
-                   range(FLAGS.batch_size, len(Ste[0]), FLAGS.batch_size))
-test_batches = [(start, end) for start, end in test_batches]
+
+test_batches = list(
+    zip(range(0, len(Ste[0]), FLAGS.batch_size), range(FLAGS.batch_size, len(Ste[0]), FLAGS.batch_size)))
 for start, end in test_batches:
-    ce = sess.run(cross_entropy, feed_dict={input_data: Ste[start:end], input_label: Ate[start:end]})
-    print("Testing - ce: ", ce)
+    acc = sess.run(accuracy, feed_dict={input_data: Ste[start:end], input_label: Ate[start:end]})
+    print("Testing - ce: ", acc)
 
 print("--- %s seconds ---" % (time.time() - start_time))

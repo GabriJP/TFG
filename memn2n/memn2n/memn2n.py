@@ -8,6 +8,7 @@ from __future__ import division
 import tensorflow as tf
 import numpy as np
 from six.moves import range
+from sys import stderr
 
 
 def position_encoding(sentence_size, embedding_size):
@@ -62,7 +63,6 @@ class MemN2N(object):
     def __init__(self, batch_size, vocab_size, sentence_size, memory_size, embedding_size,
                  hops=3,
                  max_grad_norm=40.0,
-                 nonlin=None,
                  initializer=tf.random_normal_initializer(stddev=0.1),
                  encoding=position_encoding,
                  session=tf.Session(),
@@ -89,11 +89,7 @@ class MemN2N(object):
 
             max_grad_norm: Maximum L2 norm clipping value. Defaults to `40.0`.
 
-            nonlin: Non-linearity. Defaults to `None`.
-
             initializer: Weight initializer. Defaults to `tf.random_normal_initializer(stddev=0.1)`.
-
-            optimizer: Optimizer algorithm used for SGD. Defaults to `tf.train.AdamOptimizer(learning_rate=1e-2)`.
 
             encoding: A function returning a 2D Tensor (sentence_size, embedding_size). Defaults to `position_encoding`.
 
@@ -107,9 +103,10 @@ class MemN2N(object):
         self._sentence_size = sentence_size
         self._memory_size = memory_size
         self._embedding_size = embedding_size
+        if hops <= 0:
+            raise Exception("At least one hop is required.")
         self._hops = hops
         self._max_grad_norm = max_grad_norm
-        self._nonlin = nonlin
         self._init = initializer
         self._name = name
 
@@ -192,7 +189,7 @@ class MemN2N(object):
             q_emb = tf.nn.embedding_lookup(self.A_1, queries)
             u_0 = tf.reduce_sum(q_emb * self._encoding, 1)
             u = [u_0]
-
+            u_k = None
             for hopn in range(self._hops):
                 if hopn == 0:
                     m_emb_A = tf.nn.embedding_lookup(self.A_1, stories)
@@ -223,10 +220,6 @@ class MemN2N(object):
 
                 u_k = u[-1] + o_k
 
-                # nonlinearity
-                if self._nonlin:
-                    u_k = nonlin(u_k)
-
                 u.append(u_k)
 
             # Use last C for output (transposed)
@@ -243,6 +236,10 @@ class MemN2N(object):
 
         Returns:
             loss: floating-point number, the loss computed for the batch
+            :param stories: 
+            :param queries: 
+            :param answers: 
+            :param learning_rate: 
         """
         feed_dict = {self._stories: stories, self._queries: queries, self._answers: answers, self._lr: learning_rate}
         loss, _ = self._sess.run([self.loss_op, self.train_op], feed_dict=feed_dict)

@@ -1,204 +1,160 @@
-import warnings
+# Copyright 2017 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+"""Example script to train the DNC on a repeated copy task."""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import tensorflow as tf
-import numpy as np
-import pickle
-import getopt
-import time
-import sys
-import os
+from dnc import DNC
+from repeat_copy import RepeatCopy
+from babi_task import BabiTask
+from data_utils import load_task, vectorize_data
+from six.moves import range, reduce
 
-from dnc.dnc import DNC
-from recurrent_controller import RecurrentController
+FLAGS = tf.flags.FLAGS
 
-warnings.filterwarnings('ignore')
+# Model parameters
+tf.flags.DEFINE_integer("hidden_size", 64, "Size of LSTM hidden layer.")
+tf.flags.DEFINE_integer("memory_size", 16, "The number of memory slots.")
+tf.flags.DEFINE_integer("word_size", 16, "The width of each memory slot.")
+tf.flags.DEFINE_integer("num_write_heads", 1, "Number of memory write heads.")
+tf.flags.DEFINE_integer("num_read_heads", 4, "Number of memory read heads.")
+tf.flags.DEFINE_integer("clip_value", 20,
+                        "Maximum absolute value of controller and dnc outputs.")
 
+# Optimizer parameters.
+tf.flags.DEFINE_float("max_grad_norm", 50, "Gradient clipping norm limit.")
+tf.flags.DEFINE_float("learning_rate", 1e-4, "Optimizer learning rate.")
+tf.flags.DEFINE_float("optimizer_epsilon", 1e-10,
+                      "Epsilon used for RMSProp optimizer.")
 
-def llprint(message):
-    sys.stdout.write(message)
-    sys.stdout.flush()
+# Task parameters
+tf.flags.DEFINE_integer("batch_size", 20, "Batch size for training.")
+tf.flags.DEFINE_string("data_dir", "data/tasks_1-20_v1-2/en/", "Directory containing bAbI tasks")
 
-
-def load(path):
-    return pickle.load(open(path, 'rb'))
-
-
-def onehot(index, size):
-    vec = np.zeros(size, dtype=np.float32)
-    vec[index] = 1.0
-    return vec
-
-
-def prepare_sample(sample, target_code, word_space_size):
-    input_vec = np.array(sample[0]['inputs'], dtype=np.float32)
-    output_vec = np.array(sample[0]['inputs'], dtype=np.float32)
-    seq_len = input_vec.shape[0]
-    weights_vec = np.zeros(seq_len, dtype=np.float32)
-
-    target_mask = (input_vec == target_code)
-    output_vec[target_mask] = sample[0]['outputs']
-    weights_vec[target_mask] = 1.0
-
-    input_vec = np.array([onehot(int(code), word_space_size) for code in input_vec])
-    output_vec = np.array([onehot(int(code), word_space_size) for code in output_vec])
-
-    return (
-        np.reshape(input_vec, (1, -1, word_space_size)),
-        np.reshape(output_vec, (1, -1, word_space_size)),
-        seq_len,
-        np.reshape(weights_vec, (1, -1, 1))
-    )
+# Training options.
+tf.flags.DEFINE_integer("num_training_iterations", 100000,
+                        "Number of iterations to train for.")
+tf.flags.DEFINE_integer("report_interval", 100,
+                        "Iterations between reports (samples, valid loss).")
+tf.flags.DEFINE_string("checkpoint_dir", "/tmp/tf/dnc",
+                       "Checkpointing directory.")
+tf.flags.DEFINE_integer("checkpoint_interval", -1,
+                        "Checkpointing step interval.")
 
 
-if __name__ == '__main__':
+def run_model(input_sequence, output_size=20):
+    """Runs model on input sequence."""
 
-    dirname = os.path.dirname(__file__)
-    ckpts_dir = os.path.join(dirname, 'checkpoints')
-    data_dir = os.path.join(dirname, 'data', 'en')
-    tb_logs_dir = os.path.join(dirname, 'logs')
+    access_config = {
+        "memory_size": FLAGS.memory_size,
+        "word_size": FLAGS.word_size,
+        "num_reads": FLAGS.num_read_heads,
+        "num_writes": FLAGS.num_write_heads,
+    }
+    controller_config = {
+        "hidden_size": FLAGS.hidden_size,
+    }
+    clip_value = FLAGS.clip_value
 
-    llprint("Loading Data ... ")
-    lexicon_dict = load(os.path.join(data_dir, 'lexicon-dict.pkl'))
-    data = load(os.path.join(data_dir, 'train', 'train.pkl'))
-    llprint("Done!\n")
+    dnc_core = DNC(access_config, controller_config, output_size, clip_value)
+    initial_state = dnc_core.initial_state(FLAGS.batch_size)
+    output_sequence, _ = tf.nn.dynamic_rnn(
+        cell=dnc_core,
+        inputs=input_sequence,
+        time_major=True,
+        initial_state=initial_state)
 
-    batch_size = 1
-    input_size = output_size = len(lexicon_dict)
-    sequence_max_length = 100
-    word_space_size = len(lexicon_dict)
-    words_count = 256
-    word_size = 64
-    read_heads = 4
+    return output_sequence
 
-    learning_rate = 1e-4
-    momentum = 0.9
 
-    from_checkpoint = None
-    iterations = 100000
-    start_step = 0
+def train(num_training_iterations, report_interval):
+    """Trains the DNC and periodically reports the loss."""
 
-    options, _ = getopt.getopt(sys.argv[1:], '', ['checkpoint=', 'iterations=', 'start='])
+    train, test = load_task(FLAGS.data_dir, 1)
 
-    for opt in options:
-        if opt[0] == '--checkpoint':
-            from_checkpoint = opt[1]
-        elif opt[0] == '--iterations':
-            iterations = int(opt[1])
-        elif opt[0] == '--start':
-            start_step = int(opt[1])
+    dataset = BabiTask(train, test, FLAGS.batch_size)
 
-    graph = tf.Graph()
-    with graph.as_default():
-        with tf.Session(graph=graph) as session:
+    # dataset = RepeatCopy(FLAGS.num_bits, FLAGS.batch_size, FLAGS.min_length, FLAGS.max_length, FLAGS.min_repeats,
+    # FLAGS.max_repeats)
 
-            llprint("Building Computational Graph ... ")
+    dataset_tensors = dataset()
 
-            optimizer = tf.train.RMSPropOptimizer(learning_rate, momentum=momentum)
-            summerizer = tf.summary.FileWriter(tb_logs_dir, session.graph)
+    output_logits = run_model(dataset_tensors.data)
 
-            ncomputer = DNC(
-                RecurrentController,
-                input_size,
-                output_size,
-                sequence_max_length,
-                words_count,
-                word_size,
-                read_heads,
-                batch_size
-            )
+    cross_entropy = dataset.cost(output_logits, dataset_tensors.label,
+                                 dataset_tensors.data)
 
-            output, _ = ncomputer.get_outputs()
+    # Set up optimizer with global norm clipping.
+    trainable_variables = tf.trainable_variables()
+    grads, _ = tf.clip_by_global_norm(
+        tf.gradients(cross_entropy, trainable_variables), FLAGS.max_grad_norm)
 
-            loss_weights = tf.placeholder(tf.float32, [batch_size, None, 1])
-            loss = tf.reduce_mean(
-                loss_weights * tf.nn.softmax_cross_entropy_with_logits(logits=output, labels=ncomputer.target_output)
-            )
+    global_step = tf.get_variable(
+        name="global_step",
+        shape=[],
+        dtype=tf.int64,
+        initializer=tf.zeros_initializer(),
+        trainable=False,
+        collections=[tf.GraphKeys.GLOBAL_VARIABLES, tf.GraphKeys.GLOBAL_STEP])
 
-            summeries = []
+    optimizer = tf.train.RMSPropOptimizer(
+        FLAGS.learning_rate, epsilon=FLAGS.optimizer_epsilon)
+    train_step = optimizer.apply_gradients(
+        zip(grads, trainable_variables), global_step=global_step)
 
-            gradients = optimizer.compute_gradients(loss)
-            for i, (grad, var) in enumerate(gradients):
-                if grad is not None:
-                    gradients[i] = (tf.clip_by_value(grad, -10, 10), var)
-            for (grad, var) in gradients:
-                if grad is not None:
-                    summeries.append(tf.summary.histogram(var.name + '/grad', grad))
+    saver = tf.train.Saver()
 
-            apply_gradients = optimizer.apply_gradients(gradients)
+    if FLAGS.checkpoint_interval > 0:
+        hooks = [
+            tf.train.CheckpointSaverHook(
+                checkpoint_dir=FLAGS.checkpoint_dir,
+                save_steps=FLAGS.checkpoint_interval,
+                saver=saver)
+        ]
+    else:
+        hooks = []
 
-            summeries.append(tf.summary.scalar("Loss", loss))
+    # Train.
+    with tf.train.SingularMonitoredSession(
+            hooks=hooks, checkpoint_dir=FLAGS.checkpoint_dir) as sess:
 
-            summerize_op = tf.summary.merge(summeries)
-            no_summerize = tf.no_op()
+        start_iteration = sess.run(global_step)
+        total_loss = 0
 
-            llprint("Done!\n")
+        for train_iteration in range(start_iteration, num_training_iterations):
+            _, loss = sess.run([train_step, cross_entropy])
+            total_loss += loss
 
-            llprint("Initializing Variables ... ")
-            session.run(tf.global_variables_initializer())
-            llprint("Done!\n")
+            if (train_iteration + 1) % report_interval == 0:
+                dataset_tensors_np, output_np = sess.run([dataset_tensors])
+                dataset_string = dataset.to_human_readable(dataset_tensors_np,
+                                                           output_np)
+                tf.logging.info("%d: Avg training loss %f.\n%s",
+                                train_iteration, total_loss / report_interval,
+                                dataset_string)
+                total_loss = 0
 
-            if from_checkpoint is not None:
-                llprint("Restoring Checkpoint %s ... " % from_checkpoint)
-                ncomputer.restore(session, ckpts_dir, from_checkpoint)
-                llprint("Done!\n")
 
-            last_100_losses = []
+# noinspection PyUnusedLocal
+def main(unused_argv):
+    tf.logging.set_verbosity(3)  # Print INFO log messages.
+    train(FLAGS.num_training_iterations, FLAGS.report_interval)
 
-            start = 0 if start_step == 0 else start_step + 1
-            end = start_step + iterations + 1
 
-            start_time_100 = time.time()
-            end_time_100 = None
-            avg_100_time = 0.
-            avg_counter = 0
-
-            for i in range(start, end + 1):
-                try:
-                    llprint("\rIteration %d/%d" % (i, end))
-
-                    sample = np.random.choice(data, 1)
-                    input_data, target_output, seq_len, weights = prepare_sample(sample, lexicon_dict['-'],
-                                                                                 word_space_size)
-
-                    summerize = (i % 100 == 0)
-                    take_checkpoint = (i != 0) and (i % end == 0)
-
-                    loss_value, _, summary = session.run([
-                        loss,
-                        apply_gradients,
-                        summerize_op if summerize else no_summerize
-                    ], feed_dict={
-                        ncomputer.input_data: input_data,
-                        ncomputer.target_output: target_output,
-                        ncomputer.sequence_length: seq_len,
-                        loss_weights: weights
-                    })
-
-                    last_100_losses.append(loss_value)
-                    summerizer.add_summary(summary, i)
-
-                    if summerize:
-                        llprint("\n\tAvg. Cross-Entropy: %.7f\n" % (np.mean(last_100_losses)))
-
-                        end_time_100 = time.time()
-                        elapsed_time = (end_time_100 - start_time_100) / 60
-                        avg_counter += 1
-                        avg_100_time += (1. / avg_counter) * (elapsed_time - avg_100_time)
-                        estimated_time = (avg_100_time * ((end - i) / 100.)) / 60.
-
-                        print("\tAvg. 100 iterations time: %.2f minutes" % avg_100_time)
-                        print("\tApprox. time to completion: %.2f hours" % estimated_time)
-
-                        start_time_100 = time.time()
-                        last_100_losses = []
-
-                    if take_checkpoint:
-                        llprint("\nSaving Checkpoint ... "),
-                        ncomputer.save(session, ckpts_dir, 'step-%d' % (i))
-                        llprint("Done!\n")
-
-                except KeyboardInterrupt:
-
-                    llprint("\nSaving Checkpoint ... "),
-                    ncomputer.save(session, ckpts_dir, 'step-%d' % (i))
-                    llprint("Done!\n")
-                    sys.exit(0)
+if __name__ == "__main__":
+    tf.app.run()
