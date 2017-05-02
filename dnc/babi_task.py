@@ -23,7 +23,9 @@ import sonnet as snt
 import tensorflow as tf
 from itertools import chain
 from six.moves import reduce
+# noinspection PyUnresolvedReferences
 from data_utils import vectorize_sentences
+import random
 
 DatasetTensors = collections.namedtuple('DatasetTensors', ('data', 'label'))
 
@@ -73,7 +75,7 @@ class BabiTask(snt.AbstractModule):
             self,
             train,
             test,
-    batch_size):
+            batch_size):
         super(BabiTask, self).__init__('babi_task')
 
         self._batch_size = batch_size
@@ -94,12 +96,27 @@ class BabiTask(snt.AbstractModule):
         self._S, self._A = vectorize_sentences(train, word_idx, sentence_size, max_story_size, num_steps)
         self._Ste, self._Ate = vectorize_sentences(test, word_idx, sentence_size, max_story_size, num_steps)
 
+        self._train_batches = tuple(
+            zip(range(0, len(self._S[0]), batch_size), range(batch_size, len(self._S[0]), batch_size)))
+        self._test_batches = tuple(
+            zip(range(0, len(self._Ste[0]), batch_size), range(batch_size, len(self._Ste[0]), batch_size)))
+
+    def next_train(self):
+        batch = random.choice(self._train_batches)
+        return self.sublist(self._S, *batch), self.sublist(self._A, *batch)
+
+    def next_test(self):
+        batch = random.choice(self._test_batches)
+        return self.sublist(self._Ste, *batch), self.sublist(self._Ate, *batch)
+
+    @staticmethod
+    def sublist(list_obj, start, end):
+        return list_obj[start: end]
+
     def _build(self):
         return DatasetTensors(tf.placeholder(tf.float32, [None, self._batch_size, self._num_steps]),
                               tf.placeholder(tf.float32, [None, 20]))
 
-    def cost(self, logits, labels, data):
-        return masked_sigmoid_cross_entropy(
-            logits,
-            labels,
-            data)
+    @staticmethod
+    def cost(logits, labels):
+        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels))

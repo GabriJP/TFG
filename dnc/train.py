@@ -96,8 +96,7 @@ def train(num_training_iterations, report_interval):
 
     output_logits = run_model(dataset_tensors.data)
 
-    cross_entropy = dataset.cost(output_logits, dataset_tensors.label,
-                                 dataset_tensors.data)
+    cross_entropy = dataset.cost(output_logits, dataset_tensors.label)
 
     # Set up optimizer with global norm clipping.
     trainable_variables = tf.trainable_variables()
@@ -137,7 +136,8 @@ def train(num_training_iterations, report_interval):
         total_loss = 0
 
         for train_iteration in range(start_iteration, num_training_iterations):
-            _, loss = sess.run([train_step, cross_entropy])
+            data, label = dataset.next_train()
+            _, loss = sess.run([train_step, cross_entropy], feed_dict={dataset_tensors.data: data, dataset_tensors.label: label})
             total_loss += loss
 
             if (train_iteration + 1) % report_interval == 0:
