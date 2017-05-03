@@ -126,7 +126,7 @@ class DNC(snt.RNNCore):
             access_state=access_state,
             controller_state=controller_state)
 
-    def initial_state(self, batch_size, dtype=tf.float32):
+    def initial_state(self, batch_size, dtype=tf.float32, **kwargs):
         return DNCState(
             controller_state=self._controller.initial_state(batch_size, dtype),
             access_state=self._access.initial_state(batch_size, dtype),

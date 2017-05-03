@@ -87,19 +87,22 @@ class BabiTask(snt.AbstractModule):
         # noinspection PyRedeclaration
         max_story_size = max(map(len, (s for s, _, _ in data)))
         # noinspection PyRedeclaration
-        sentence_size = max(map(len, chain.from_iterable(s for s, _, _ in data)))
+        max_sentence_size = max(map(len, chain.from_iterable(s for s, _, _ in data)))
         # noinspection PyRedeclaration
-        query_size = max(map(len, (q for _, q, _ in data)))
+        max_query_size = max(map(len, (q for _, q, _ in data)))
 
-        num_steps = self._num_steps = max_story_size * sentence_size + query_size
+        num_steps = self._num_steps = max_story_size * max_sentence_size + max_query_size
 
-        self._S, self._A = vectorize_sentences(train, word_idx, sentence_size, max_story_size, num_steps)
-        self._Ste, self._Ate = vectorize_sentences(test, word_idx, sentence_size, max_story_size, num_steps)
+        self._S, self._A = vectorize_sentences(train, word_idx, max_sentence_size, max_story_size, num_steps)
+        self._Ste, self._Ate = vectorize_sentences(test, word_idx, max_sentence_size, max_story_size, num_steps)
 
         self._train_batches = tuple(
             zip(range(0, len(self._S[0]), batch_size), range(batch_size, len(self._S[0]), batch_size)))
         self._test_batches = tuple(
             zip(range(0, len(self._Ste[0]), batch_size), range(batch_size, len(self._Ste[0]), batch_size)))
+
+    def num_steps(self):
+        return self._num_steps
 
     def next_train(self):
         batch = random.choice(self._train_batches)
@@ -114,7 +117,7 @@ class BabiTask(snt.AbstractModule):
         return list_obj[start: end]
 
     def _build(self):
-        return DatasetTensors(tf.placeholder(tf.float32, [None, self._batch_size, self._num_steps]),
+        return DatasetTensors(tf.placeholder(tf.float32, [None, self._num_steps, 1]),
                               tf.placeholder(tf.float32, [None, 20]))
 
     @staticmethod

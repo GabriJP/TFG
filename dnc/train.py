@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import tensorflow as tf
 from dnc import DNC
-from repeat_copy import RepeatCopy
 from babi_task import BabiTask
 from data_utils import load_task, vectorize_data
 from six.moves import range, reduce
@@ -57,7 +56,7 @@ tf.flags.DEFINE_integer("checkpoint_interval", -1,
                         "Checkpointing step interval.")
 
 
-def run_model(input_sequence, output_size=20):
+def run_model(input_sequence, num_steps, output_size=20):
     """Runs model on input sequence."""
 
     access_config = {
@@ -72,7 +71,7 @@ def run_model(input_sequence, output_size=20):
     clip_value = FLAGS.clip_value
 
     dnc_core = DNC(access_config, controller_config, output_size, clip_value)
-    initial_state = dnc_core.initial_state(FLAGS.batch_size)
+    initial_state = dnc_core.initial_state(num_steps)
     output_sequence, _ = tf.nn.dynamic_rnn(
         cell=dnc_core,
         inputs=input_sequence,
@@ -94,7 +93,7 @@ def train(num_training_iterations, report_interval):
 
     dataset_tensors = dataset()
 
-    output_logits = run_model(dataset_tensors.data)
+    output_logits = run_model(dataset_tensors.data, dataset.num_steps())
 
     cross_entropy = dataset.cost(output_logits, dataset_tensors.label)
 
@@ -129,15 +128,15 @@ def train(num_training_iterations, report_interval):
         hooks = []
 
     # Train.
-    with tf.train.SingularMonitoredSession(
-            hooks=hooks, checkpoint_dir=FLAGS.checkpoint_dir) as sess:
+    with tf.train.SingularMonitoredSession(hooks=hooks, checkpoint_dir=FLAGS.checkpoint_dir) as sess:
 
         start_iteration = sess.run(global_step)
         total_loss = 0
 
         for train_iteration in range(start_iteration, num_training_iterations):
-            data, label = dataset.next_train()
-            _, loss = sess.run([train_step, cross_entropy], feed_dict={dataset_tensors.data: data, dataset_tensors.label: label})
+            data, labels = dataset.next_train()
+            _, loss = sess.run([train_step, cross_entropy],
+                               feed_dict={dataset_tensors.data: data, dataset_tensors.label: labels})
             total_loss += loss
 
             if (train_iteration + 1) % report_interval == 0:
