@@ -17,8 +17,8 @@ def load_task(data_dir, task_id, only_supporting=False):
     s = 'qa{}_'.format(task_id)
     train_file = [f for f in files if s in f and 'train' in f][0]
     test_file = [f for f in files if s in f and 'test' in f][0]
-    train_data = get_stories(train_file, only_supporting)
-    test_data = get_stories(test_file, only_supporting)
+    train_data = get_stories(train_file)
+    test_data = get_stories(test_file)
     return train_data, test_data
 
 
@@ -30,7 +30,7 @@ def tokenize(sent):
     return [x.strip() for x in re.split('\W+', sent) if x.strip()]
 
 
-def parse_stories(lines, only_supporting=False):
+def parse_stories(lines):
     """Parse stories provided in the bAbI tasks format
     If only_supporting is true, only the sentences that support the answer are kept.
     """
@@ -43,7 +43,7 @@ def parse_stories(lines, only_supporting=False):
         if nid == 1:
             story = []
         if '\t' in line:  # question
-            q, a, supporting = line.split('\t')
+            q, a = line.split('\t')
             q = tokenize(q)
             # a = tokenize(a)
             # answer is one vocab word even if it's actually multiple words
@@ -54,13 +54,7 @@ def parse_stories(lines, only_supporting=False):
             if q[-1] == "?":
                 q = q[:-1]
 
-            if only_supporting:
-                # Only select the related substory
-                supporting = map(int, supporting.split())
-                substory = [story[i - 1] for i in supporting]
-            else:
-                # Provide all the substories
-                substory = [x for x in story if x]
+            substory = [x for x in story if x]
 
             data.append((substory, q, a))
             story.append('')
@@ -73,12 +67,12 @@ def parse_stories(lines, only_supporting=False):
     return data
 
 
-def get_stories(f, only_supporting=False):
+def get_stories(f):
     """Given a file name, read the file, retrieve the stories, and then convert the sentences into a single story.
     If max_length is supplied, any stories longer than max_length tokens will be discarded.
     """
     with open(f) as f:
-        return parse_stories(f.readlines(), only_supporting=only_supporting)
+        return parse_stories(f.readlines())
 
 
 def vectorize_data(data, word_idx, sentence_size, memory_size):

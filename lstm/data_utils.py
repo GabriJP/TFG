@@ -5,7 +5,7 @@ import re
 import numpy as np
 
 
-def load_task(data_dir, task_id, only_supporting=False):
+def load_task(data_dir, task_id):
     """Load the nth task. There are 20 tasks in total.
 
     Returns a tuple containing the training and testing data for the task.
@@ -18,8 +18,8 @@ def load_task(data_dir, task_id, only_supporting=False):
     s = 'qa{}_'.format(task_id)
     train_file = [f for f in files if s in f and 'train' in f][0]
     test_file = [f for f in files if s in f and 'test' in f][0]
-    train_data = get_stories(train_file, only_supporting)
-    test_data = get_stories(test_file, only_supporting)
+    train_data = get_stories(train_file)
+    test_data = get_stories(test_file)
     return train_data, test_data
 
 
@@ -31,7 +31,7 @@ def tokenize(sent):
     return [x.strip() for x in re.split('\W+', sent) if x.strip()]
 
 
-def parse_stories(lines, only_supporting=False):
+def parse_stories(lines):
     """Parse stories provided in the bAbI tasks format
     If only_supporting is true, only the sentences that support the answer are kept.
     """
@@ -44,24 +44,18 @@ def parse_stories(lines, only_supporting=False):
         if nid == 1:
             story = []
         if '\t' in line:  # question
-            q, a, supporting = line.split('\t')
+            q, a = line.split('\t')
             q = tokenize(q)
             # a = tokenize(a)
             # answer is one vocab word even if it's actually multiple words
             a = [a]
-            substory = None
 
             # remove question marks
             if q[-1] == "?":
                 q = q[:-1]
 
-            if only_supporting:
-                # Only select the related substory
-                supporting = map(int, supporting.split())
-                substory = [story[i - 1] for i in supporting]
-            else:
-                # Provide all the substories
-                substory = [x for x in story if x]
+            # Provide all the substories
+            substory = [x for x in story if x]
 
             data.append((substory, q, a))
             story.append('')
@@ -74,12 +68,12 @@ def parse_stories(lines, only_supporting=False):
     return data
 
 
-def get_stories(f, only_supporting=False):
+def get_stories(f):
     """Given a file name, read the file, retrieve the stories, and then convert the sentences into a single story.
     If max_length is supplied, any stories longer than max_length tokens will be discarded.
     """
     with open(f) as f:
-        return parse_stories(f.readlines(), only_supporting=only_supporting)
+        return parse_stories(f.readlines())
 
 
 def vectorize_data(data, word_idx, sentence_size, memory_size):
@@ -133,7 +127,6 @@ def vectorize_sentences(data, word_idx, sentence_size, max_story_size, num_steps
     Empty memories are 1-D arrays of length sentence_size filled with 0's.
 
     The answer array is returned as a one-hot encoding.
-    :type sentence_size: object
     """
     S = []
     Q = []

@@ -27,7 +27,7 @@ tf.flags.DEFINE_integer("task_id", 1, "bAbI task id, 1 <= id <= 20")
 tf.flags.DEFINE_integer("num_layers", 1, "Number of layers.")
 tf.flags.DEFINE_integer("num_hidden", 128, "Number of hidden units.")
 # tf.flags.DEFINE_integer("steps", 25, "Number of steps in the LSTM.")
-tf.flags.DEFINE_string("data_dir", "data/en-valid/", "Directory containing bAbI tasks")
+tf.flags.DEFINE_string("data_dir", "../familytask", "Directory containing bAbI tasks")
 tf.flags.DEFINE_string("log_dir", "data/logs/", "Directory containing bAbI tasks")
 FLAGS = tf.flags.FLAGS
 
@@ -56,12 +56,12 @@ Ste, Ate = vectorize_sentences(test, word_idx, sentence_size, max_story_size, nu
 inputs = 1
 
 input_data = tf.placeholder(tf.float32, [None, num_steps, inputs])
-input_label = tf.placeholder(tf.float32, [None, 20])
+input_label = tf.placeholder(tf.float32, [None, num_steps])
 
 
 def inference(_input_data):
     with tf.variable_scope("RNN"):
-        w_o = tf.Variable(tf.random_normal([FLAGS.num_hidden, 20], stddev=0.1), name='w_o')
+        w_o = tf.Variable(tf.random_normal([FLAGS.num_hidden, num_steps], stddev=0.1), name='w_o')
         b_o = tf.Variable(tf.zeros([1]), name='b_o')
 
         lstm_layers = [tf.contrib.rnn.BasicLSTMCell(num_units=FLAGS.num_hidden, forget_bias=0.2)
