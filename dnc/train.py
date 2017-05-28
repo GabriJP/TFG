@@ -52,9 +52,28 @@ def prepare_sample(sample, target_code, word_space_size):
 
 if __name__ == '__main__':
 
+    options, _ = getopt.getopt(sys.argv[1:], '', ['checkpoint=', 'iterations=', 'start='])
+
+    output_logs = input_data = None
+
+    for opt in options:
+        if opt[0] == '--checkpoint':
+            from_checkpoint = opt[1]
+        elif opt[0] == '--iterations':
+            iterations = int(opt[1])
+        elif opt[0] == '--start':
+            start_step = int(opt[1])
+        elif opt[0] == '--output':
+            output_logs = opt[1]
+        elif opt[0] == '--input':
+            input_data = opt[1]
+
+    if output_logs is None or input_data is None:
+        raise ValueError("data_dir argument cannot be None")
+
     dirname = os.path.dirname(__file__)
-    ckpts_dir = os.path.join(dirname, 'checkpoints')
-    data_dir = os.path.join(dirname, 'data', 'family')
+    ckpts_dir = os.path.join(dirname, 'checkpoints', output_logs)
+    data_dir = os.path.join(dirname, 'data', input_data)
     tb_logs_dir = os.path.join(dirname, 'logs')
 
     llprint("Loading Data ... ")
@@ -74,18 +93,8 @@ if __name__ == '__main__':
     momentum = 0.9
 
     from_checkpoint = None
-    iterations = 100000
+    iterations = 10000
     start_step = 0
-
-    options, _ = getopt.getopt(sys.argv[1:], '', ['checkpoint=', 'iterations=', 'start='])
-
-    for opt in options:
-        if opt[0] == '--checkpoint':
-            from_checkpoint = opt[1]
-        elif opt[0] == '--iterations':
-            iterations = int(opt[1])
-        elif opt[0] == '--start':
-            start_step = int(opt[1])
 
     graph = tf.Graph()
     with graph.as_default():

@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 
-if sys.version_info >= (3, 0):
-    from tasks.babi.recurrent_controller import RecurrentController
-else:
-    from recurrent_controller import RecurrentController
+from recurrent_controller import RecurrentController
 from dnc.dnc import DNC
 import tensorflow as tf
 import numpy as np
@@ -51,15 +48,18 @@ def prepare_sample(sample, target_code, word_space_size):
 
 
 ckpts_dir = './checkpoints/'
-lexicon_dictionary = load('./data/en-10k/lexicon-dict.pkl')
+data_folder = 'en-10k'
+lexicon_dictionary = load('./data/%s/lexicon-dict.pkl' % data_folder)
 question_code = lexicon_dictionary["?"]
 target_code = lexicon_dictionary["-"]
 test_files = []
 
-for entryname in os.listdir('./data/en-10k/test/'):
-    entry_path = os.path.join('./data/en-10k/test/', entryname)
+for entryname in os.listdir('./data/%s/test/' % data_folder):
+    entry_path = os.path.join('./data/%s/test/' % data_folder, entryname)
     if os.path.isfile(entry_path):
         test_files.append(entry_path)
+
+test_files = sorted(test_files)
 
 graph = tf.Graph()
 with graph.as_default():
@@ -75,16 +75,17 @@ with graph.as_default():
             memory_read_heads=4,
         )
 
-        ncomputer.restore(session, ckpts_dir, 'step-500005')
+        ncomputer.restore(session, ckpts_dir, 'step-10001')
 
         outputs, _ = ncomputer.get_outputs()
         softmaxed = tf.nn.softmax(outputs)
 
+        task_numbers = {}
         tasks_results = {}
         tasks_names = {}
         for test_file in test_files:
             test_data = load(test_file)
-            task_regexp = r'qa([0-9]{1,2})_([a-z\-]*)_test.txt.pkl'
+            task_regexp = r'qa(\d{1,2})_([a-z\-]*)_?test.txt.pkl'
             task_filename = os.path.basename(test_file)
             task_match_obj = re.match(task_regexp, task_filename)
             task_number = task_match_obj.group(1)
@@ -126,7 +127,7 @@ with graph.as_default():
 
             error_rate = 1. - np.mean(results)
             tasks_results[task_number] = error_rate
-            llprint("\r%s ... %.3f%% Error Rate.\n" % (task_name, float(error_rate * 100)))
+            llprint("\r%s ... %.3f%% Error Rate.\n" % (task_name, error_rate * 100))
 
         print("\n")
         print("%-27s%-27s%s" % ("Task", "Result", "Paper's Mean"))
@@ -139,10 +140,9 @@ with graph.as_default():
             '16': '53.6±1.9%', '17': '32.4±8.0%', '18': '4.2±1.8%', '19': '64.6±37.4%',
             '20': '0.0±0.1%', 'mean': '16.7±7.6%', 'fail': '11.2±5.4'
         }
-        for k in range(20):
-            task_id = str(k + 1)
+        for task_id, task_name in sorted(tasks_names.items()):
             task_result = "%.2f%%" % (tasks_results[task_id] * 100)
-            print("%-27s%-27s%s" % (tasks_names[task_id], task_result, paper_means[task_id]))
+            print("%-27s%-27s%s" % (task_name, task_result, paper_means[task_id]))
         print("-------------------------------------------------------------------")
         all_tasks_results = [v for _, v in tasks_results.items()]
         results_mean = "%.2f%%" % float(np.mean(all_tasks_results) * 100)

@@ -96,7 +96,7 @@ family_relations = {
     (5, 4): "primo",
 }
 
-n_histories = 20000
+n_histories = 10000
 history_length = (7, 13)
 n_hops = (1, 4)
 
