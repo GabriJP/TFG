@@ -9,6 +9,7 @@ import pickle
 import sys
 import os
 import re
+from sys import argv
 
 
 def llprint(message):
@@ -47,8 +48,8 @@ def prepare_sample(sample, target_code, word_space_size):
     )
 
 
-ckpts_dir = './checkpoints/'
-data_folder = 'en-10k'
+ckpts_dir = './checkpoints/%s' % argv[1]
+data_folder = argv[2]
 lexicon_dictionary = load('./data/%s/lexicon-dict.pkl' % data_folder)
 question_code = lexicon_dictionary["?"]
 target_code = lexicon_dictionary["-"]
