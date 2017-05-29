@@ -52,7 +52,7 @@ def prepare_sample(sample, target_code, word_space_size):
 
 if __name__ == '__main__':
 
-    options, _ = getopt.getopt(sys.argv[1:], '', ['checkpoint=', 'iterations=', 'start='])
+    options, _ = getopt.getopt(sys.argv[1:], '', ['checkpoint=', 'iterations=', 'start=', 'input=', 'output='])
 
     output_logs = input_data = None
 
