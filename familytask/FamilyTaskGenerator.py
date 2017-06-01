@@ -131,6 +131,6 @@ for hops in range(*n_hops):
 
                 shuffle(hechos)
 
-                hechos = ["%d %s" % (idx + 1, hecho) for idx, hecho in enumerate(hechos + ["%s\t%s\n" % (pregunta, respuesta)])]
+                hechos = ["%d %s" % (idx + 1, hecho) for idx, hecho in enumerate(hechos + ["%s \t%s\t1\n" % (pregunta, respuesta)])]
 
                 file.writelines(hechos)

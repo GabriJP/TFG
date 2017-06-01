@@ -44,7 +44,7 @@ def parse_stories(lines):
         if nid == 1:
             story = []
         if '\t' in line:  # question
-            q, a = line.split('\t')
+            q, a, _ = line.split('\t')
             q = tokenize(q)
             # a = tokenize(a)
             # answer is one vocab word even if it's actually multiple words

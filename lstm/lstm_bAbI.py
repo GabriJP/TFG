@@ -56,15 +56,15 @@ Ste, Ate = vectorize_sentences(test, word_idx, sentence_size, max_story_size, nu
 inputs = 1
 
 input_data = tf.placeholder(tf.float32, [None, num_steps, inputs])
-input_label = tf.placeholder(tf.float32, [None, num_steps])
+input_label = tf.placeholder(tf.float32, [None, len(vocab) + 1])
 
 
 def inference(_input_data):
     with tf.variable_scope("RNN"):
-        w_o = tf.Variable(tf.random_normal([FLAGS.num_hidden, num_steps], stddev=0.1), name='w_o')
+        w_o = tf.Variable(tf.random_normal([FLAGS.num_hidden, len(vocab) + 1], stddev=0.1), name='w_o')
         b_o = tf.Variable(tf.zeros([1]), name='b_o')
 
-        lstm_layers = [tf.contrib.rnn.BasicLSTMCell(num_units=FLAGS.num_hidden, forget_bias=0.2)
+        lstm_layers = [tf.contrib.rnn.BasicLSTMCell(num_units=FLAGS.num_hidden)
                        for _ in range(FLAGS.num_layers)]
 
         lstm_layers_with_dropout = [tf.contrib.rnn.DropoutWrapper(layer, FLAGS.dropout) for layer in
@@ -92,16 +92,16 @@ predicted = inference(input_data)
 if FLAGS.L2:
     regularization_cost = tf.reduce_sum([tf.nn.l2_loss(v) for v in tf.trainable_variables()
                                          if "w_o" in v.name or "weights" in v.name])
-    cross_entropy = tf.reduce_sum(tf.square(input_label - predicted[:, 62])) + regularization_cost
+    cross_entropy = tf.reduce_sum(tf.square(input_label - predicted[:, -1])) + regularization_cost
 else:
-    cross_entropy = tf.reduce_sum(tf.square(input_label - predicted[:, 62]))
+    cross_entropy = tf.reduce_sum(tf.square(input_label - predicted[:, -1]))
 
 # opt = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.learning_rate)
 opt = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate, epsilon=FLAGS.epsilon)
 train_step = opt.minimize(cross_entropy)
 
-correct_pred = tf.equal(tf.argmax(predicted[:, 62], 1), tf.argmax(input_label, 1))
-accuracy = tf.reduce_sum(tf.cast(tf.equal(tf.argmax(input_label, 1), tf.argmax(tf.nn.softmax(predicted[:, 62]), 1)),
+correct_pred = tf.equal(tf.argmax(predicted[:, -1], 1), tf.argmax(input_label, 1))
+accuracy = tf.reduce_sum(tf.cast(tf.equal(tf.argmax(input_label, 1), tf.argmax(tf.nn.softmax(predicted[:, -1]), 1)),
                                  tf.int32)) / FLAGS.batch_size
 
 tf.summary.scalar("accuracy", accuracy)
