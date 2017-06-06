@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
     options, _ = getopt.getopt(sys.argv[1:], '', ['checkpoint=', 'iterations=', 'start=', 'input=', 'output='])
 
-    output_logs = input_data = None
+    output_logs = input_data = iterations = None
 
     for opt in options:
         if opt[0] == '--checkpoint':
@@ -93,6 +93,8 @@ if __name__ == '__main__':
     momentum = 0.9
 
     from_checkpoint = None
+    if iterations is None:
+        iterations = 10000
     start_step = 0
 
     graph = tf.Graph()
@@ -202,12 +204,12 @@ if __name__ == '__main__':
 
                     if take_checkpoint:
                         llprint("\nSaving Checkpoint ... "),
-                        ncomputer.save(session, ckpts_dir, 'step-%d' % (i))
+                        ncomputer.save(session, ckpts_dir, 'step-%d' % i)
                         llprint("Done!\n")
 
                 except KeyboardInterrupt:
 
                     llprint("\nSaving Checkpoint ... "),
-                    ncomputer.save(session, ckpts_dir, 'step-%d' % (i))
+                    ncomputer.save(session, ckpts_dir, 'step-%d' % i)
                     llprint("Done!\n")
                     sys.exit(0)
