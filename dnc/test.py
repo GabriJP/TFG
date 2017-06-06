@@ -76,7 +76,7 @@ with graph.as_default():
             memory_read_heads=4,
         )
 
-        ncomputer.restore(session, ckpts_dir, 'step-10001')
+        ncomputer.restore(session, ckpts_dir, 'step-%d' % (argv[3] + 1))
 
         outputs, _ = ncomputer.get_outputs()
         softmaxed = tf.nn.softmax(outputs)

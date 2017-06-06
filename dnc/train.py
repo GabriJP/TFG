@@ -93,7 +93,6 @@ if __name__ == '__main__':
     momentum = 0.9
 
     from_checkpoint = None
-    iterations = 10000
     start_step = 0
 
     graph = tf.Graph()
