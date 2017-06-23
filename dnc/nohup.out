@@ -1,0 +1,138 @@
+./family2.sh: línea 6:   695 Terminado               python3 train.py --input ${task} --output "${task}_${iters}_${inc}" --iterations ${iters} >> checkpoints/${task}_${iters}_${inc}/log.txt
+2017-06-21 12:28:06.816282: W tensorflow/core/framework/op_kernel.cc:1152] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 12:28:06.816310: W tensorflow/core/framework/op_kernel.cc:1152] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 12:28:06.816340: W tensorflow/core/framework/op_kernel.cc:1152] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 12:28:06.816365: W tensorflow/core/framework/op_kernel.cc:1152] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 12:28:06.816387: W tensorflow/core/framework/op_kernel.cc:1152] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 12:28:06.816487: W tensorflow/core/framework/op_kernel.cc:1152] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 12:28:06.816552: W tensorflow/core/framework/op_kernel.cc:1152] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 1039, in _do_call
+    return fn(*args)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 1021, in _run_fn
+    status, run_metadata)
+  File "/usr/lib/python3.5/contextlib.py", line 66, in __exit__
+    next(self.gen)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/framework/errors_impl.py", line 466, in raise_exception_on_not_ok_status
+    pywrap_tensorflow.TF_GetCode(status))
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+	 [[Node: save/RestoreV2_6 = RestoreV2[dtypes=[DT_FLOAT], _device="/job:localhost/replica:0/task:0/cpu:0"](_recv_save/Const_0, save/RestoreV2_6/tensor_names, save/RestoreV2_6/shape_and_slices)]]
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "test.py", line 79, in <module>
+    ncomputer.restore(session, ckpts_dir, 'step-%d' % (int(argv[3]) + 1))
+  File "/root/TFG/dnc/dnc/dnc.py", line 269, in restore
+    tf.train.Saver(tf.trainable_variables()).restore(session, os.path.join(ckpts_dir, name, 'model.ckpt'))
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 1457, in restore
+    {self.saver_def.filename_tensor_name: save_path})
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 778, in run
+    run_metadata_ptr)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 982, in _run
+    feed_dict_string, options, run_metadata)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 1032, in _do_run
+    target_list, options, run_metadata)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 1052, in _do_call
+    raise type(e)(node_def, op, message)
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+	 [[Node: save/RestoreV2_6 = RestoreV2[dtypes=[DT_FLOAT], _device="/job:localhost/replica:0/task:0/cpu:0"](_recv_save/Const_0, save/RestoreV2_6/tensor_names, save/RestoreV2_6/shape_and_slices)]]
+
+Caused by op 'save/RestoreV2_6', defined at:
+  File "test.py", line 79, in <module>
+    ncomputer.restore(session, ckpts_dir, 'step-%d' % (int(argv[3]) + 1))
+  File "/root/TFG/dnc/dnc/dnc.py", line 269, in restore
+    tf.train.Saver(tf.trainable_variables()).restore(session, os.path.join(ckpts_dir, name, 'model.ckpt'))
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 1056, in __init__
+    self.build()
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 1086, in build
+    restore_sequentially=self._restore_sequentially)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 691, in build
+    restore_sequentially, reshape)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 407, in _AddRestoreOps
+    tensors = self.restore_op(filename_tensor, saveable, preferred_shard)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 247, in restore_op
+    [spec.tensor.dtype])[0])
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/ops/gen_io_ops.py", line 669, in restore_v2
+    dtypes=dtypes, name=name)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/framework/op_def_library.py", line 768, in apply_op
+    op_def=op_def)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/framework/ops.py", line 2336, in create_op
+    original_op=self._default_original_op, op_def=op_def)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/framework/ops.py", line 1228, in __init__
+    self._traceback = _extract_stack()
+
+InvalidArgumentError (see above for traceback): Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+	 [[Node: save/RestoreV2_6 = RestoreV2[dtypes=[DT_FLOAT], _device="/job:localhost/replica:0/task:0/cpu:0"](_recv_save/Const_0, save/RestoreV2_6/tensor_names, save/RestoreV2_6/shape_and_slices)]]
+
+2017-06-21 15:45:43.421582: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2017-06-21 15:45:43.431072: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+./family2.sh: línea 6:   271 Terminado               python3 train.py --input ${task} --output "${task}_${iters}_${inc}" --iterations ${iters} >> checkpoints/${task}_${iters}_${inc}/log.txt
+2017-06-21 15:46:27.473534: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2017-06-21 15:46:27.473578: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+2017-06-21 15:46:27.988968: W tensorflow/core/framework/op_kernel.cc:1158] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 15:46:27.988994: W tensorflow/core/framework/op_kernel.cc:1158] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 15:46:27.989045: W tensorflow/core/framework/op_kernel.cc:1158] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 15:46:27.989099: W tensorflow/core/framework/op_kernel.cc:1158] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 15:46:27.989190: W tensorflow/core/framework/op_kernel.cc:1158] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 15:46:27.989234: W tensorflow/core/framework/op_kernel.cc:1158] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+2017-06-21 15:46:27.989309: W tensorflow/core/framework/op_kernel.cc:1158] Invalid argument: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 1139, in _do_call
+    return fn(*args)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 1121, in _run_fn
+    status, run_metadata)
+  File "/usr/lib/python3.5/contextlib.py", line 66, in __exit__
+    next(self.gen)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/framework/errors_impl.py", line 466, in raise_exception_on_not_ok_status
+    pywrap_tensorflow.TF_GetCode(status))
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+	 [[Node: save/RestoreV2_1 = RestoreV2[dtypes=[DT_FLOAT], _device="/job:localhost/replica:0/task:0/cpu:0"](_arg_save/Const_0_0, save/RestoreV2_1/tensor_names, save/RestoreV2_1/shape_and_slices)]]
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "test.py", line 79, in <module>
+    ncomputer.restore(session, ckpts_dir, 'step-%d' % (int(argv[3]) + 1))
+  File "/root/TFG/dnc/dnc/dnc.py", line 269, in restore
+    tf.train.Saver(tf.trainable_variables()).restore(session, os.path.join(ckpts_dir, name, 'model.ckpt'))
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 1548, in restore
+    {self.saver_def.filename_tensor_name: save_path})
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 789, in run
+    run_metadata_ptr)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 997, in _run
+    feed_dict_string, options, run_metadata)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 1132, in _do_run
+    target_list, options, run_metadata)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 1152, in _do_call
+    raise type(e)(node_def, op, message)
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+	 [[Node: save/RestoreV2_1 = RestoreV2[dtypes=[DT_FLOAT], _device="/job:localhost/replica:0/task:0/cpu:0"](_arg_save/Const_0_0, save/RestoreV2_1/tensor_names, save/RestoreV2_1/shape_and_slices)]]
+
+Caused by op 'save/RestoreV2_1', defined at:
+  File "test.py", line 79, in <module>
+    ncomputer.restore(session, ckpts_dir, 'step-%d' % (int(argv[3]) + 1))
+  File "/root/TFG/dnc/dnc/dnc.py", line 269, in restore
+    tf.train.Saver(tf.trainable_variables()).restore(session, os.path.join(ckpts_dir, name, 'model.ckpt'))
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 1139, in __init__
+    self.build()
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 1170, in build
+    restore_sequentially=self._restore_sequentially)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 691, in build
+    restore_sequentially, reshape)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 407, in _AddRestoreOps
+    tensors = self.restore_op(filename_tensor, saveable, preferred_shard)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/saver.py", line 247, in restore_op
+    [spec.tensor.dtype])[0])
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/ops/gen_io_ops.py", line 640, in restore_v2
+    dtypes=dtypes, name=name)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/framework/op_def_library.py", line 767, in apply_op
+    op_def=op_def)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/framework/ops.py", line 2506, in create_op
+    original_op=self._default_original_op, op_def=op_def)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/framework/ops.py", line 1269, in __init__
+    self._traceback = _extract_stack()
+
+InvalidArgumentError (see above for traceback): Unsuccessful TensorSliceReader constructor: Failed to get matching files on ./checkpoints/family_600000_3/step-600001/model.ckpt: Not found: ./checkpoints/family_600000_3/step-600001
+	 [[Node: save/RestoreV2_1 = RestoreV2[dtypes=[DT_FLOAT], _device="/job:localhost/replica:0/task:0/cpu:0"](_arg_save/Const_0_0, save/RestoreV2_1/tensor_names, save/RestoreV2_1/shape_and_slices)]]
+
