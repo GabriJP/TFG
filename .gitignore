@@ -1,1 +1,12 @@
+# IDE files
+.idea/
+
+#Python files
+**/__pycache__/
+
+#LSTM files
+lstm/LSTM.xlsx
+
+#DNC files
 dnc/logs/*
+dnc/checkpoints/*
