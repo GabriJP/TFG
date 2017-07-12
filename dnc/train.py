@@ -68,8 +68,11 @@ if __name__ == '__main__':
         elif opt[0] == '--input':
             input_data = opt[1]
 
-    if output_logs is None or input_data is None:
-        raise ValueError("data_dir argument cannot be None")
+    if output_logs is None:
+        raise ValueError("output argument cannot be None")
+
+    if input_data is None:
+        raise ValueError("input argument cannot be None")
 
     dirname = os.path.dirname(__file__)
     ckpts_dir = os.path.join(dirname, 'checkpoints', output_logs)
